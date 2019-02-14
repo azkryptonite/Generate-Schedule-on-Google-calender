@@ -1,0 +1,258 @@
+<!doctype html>
+
+<html>
+<head>
+<meta charset="utf-8" />
+<title>generate your google calender file</title>
+</head>
+
+<body>
+<a href='#' onclick='downloadCSV({ filename: "stock-data.csv" });'>Download CSV</a>
+  <div id="inputs" class="clearfix">
+    <input type="file" id="files" name="files[]" multiple />
+  </div>
+  <hr />
+  <output id="list">
+  </output>
+  <script src="http://code.jquery.com/jquery-1.8.2.js"></script>
+ <script src="http://code.jquery.com/ui/1.9.0/jquery-ui.js"></script>
+  <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
+  <script src="./jquery-csv/src/jquery.csv.js"></script>
+  <script>
+    $(document).ready(function() {
+      if(isAPIAvailable()) {
+        $('#files').bind('change', handleFileSelect);
+      }
+    });
+
+
+    
+    function isAPIAvailable() {
+      // Check for the various File API support.
+      if (window.File && window.FileReader && window.FileList && window.Blob) {
+        // Great success! All the File APIs are supported.
+        return true;
+      } else {
+        // source: File API availability - http://caniuse.com/#feat=fileapi
+        // source: <output> availability - http://html5doctor.com/the-output-element/
+        document.writeln('The HTML5 APIs used in this form are only available in the following browsers:<br />');
+        // 6.0 File API & 13.0 <output>
+        document.writeln(' - Google Chrome: 13.0 or later<br />');
+        // 3.6 File API & 6.0 <output>
+        document.writeln(' - Mozilla Firefox: 6.0 or later<br />');
+        // 10.0 File API & 10.0 <output>
+        document.writeln(' - Internet Explorer: Not supported (partial support expected in 10.0)<br />');
+        // ? File API & 5.1 <output>
+        document.writeln(' - Safari: Not supported<br />');
+        // ? File API & 9.2 <output>
+        document.writeln(' - Opera: Not supported');
+        return false;
+      }
+    }
+    function handleFileSelect(evt) {
+      var files = evt.target.files; // FileList object
+      var file = files[0];
+      // read the file metadata
+      var output = ''
+          output += '<span style="font-weight:bold;">' + escape(file.name) + '</span><br />\n';
+          output += ' - FileType: ' + (file.type || 'n/a') + '<br />\n';
+          output += ' - FileSize: ' + file.size + ' bytes<br />\n';
+          output += ' - LastModified: ' + (file.lastModifiedDate ? file.lastModifiedDate.toLocaleDateString() : 'n/a') + '<br />\n';
+      // read the file contents
+      printTable(file);
+      // post the results
+      $('#list').append(output);
+    }
+    function printTable(file) {
+      var reader = new FileReader();
+      reader.readAsText(file);
+      reader.onload = function(event){
+        var csv = event.target.result;
+        var arr = $.csv.toArrays(csv);
+        mainscript(arr);
+      };
+      reader.onerror = function(){ alert('Unable to read ' + file.fileName); };
+    }
+
+    function mainscript(data) {
+    var arr=[["Subject","Start Date","Start Time","End Date","End Time","Description","Location"]];
+
+for (i = 1; i < data.length; i++) {
+
+    var startdate=data[i][10].split(" ");
+    for ( x= 0; x < startdate.length; x++) {
+    startdate[x]=startdate[x].split(",");
+}
+
+    //var mon="9/2/2019";
+    //var tue="9/3/2019";
+    //var wed="9/4/2019";
+    //var thu="9/5/2019";
+    //var fri="9/6/2019";
+    var currentDate = new Date(2019,9,2);
+    var day = currentDate.getDate();
+    var month = currentDate.getMonth();
+    var year = currentDate.getFullYear();
+    var mon=month + "/" + day + "/" + year;
+    var tue=nextday(currentDate,1);
+    var wed=nextday(currentDate,2);
+    var thu=nextday(currentDate,3);
+    var fri=nextday(currentDate,4);
+    for (j = 0; j < startdate.length; j++) {
+        for (k= 0; k < startdate[j].length; k++) {
+            var temp=[];
+            //Subject
+            var subject=data[i][1]
+            temp.push(subject);
+            //start end date
+            switch(startdate[j][k]) {
+                case "Mon":
+                    temp.push(mon);
+                    break;
+                case "Tue":
+                    temp.push(tue);
+                    break;
+                case "Wed":
+                    temp.push(wed);
+                    break;
+                case "Thu":
+                    temp.push(thu);
+                    break;
+                case "Fri":
+                    temp.push(fri);
+                    break;
+                default:
+                    temp.push("none");
+            }
+            //start time
+            //starttime=data[i][11].split(" ");
+            starttime=processtime(data[i][11]);
+            temp.push(processstr(starttime[j]));
+            //End Date
+            switch(startdate[j][k]) {
+                case "Mon":
+                    temp.push(mon);
+                    break;
+                case "Tue":
+                    temp.push(tue);
+                    break;
+                case "Wed":
+                    temp.push(wed);
+                    break;
+                case "Thu":
+                    temp.push(thu);
+                    break;
+                case "Fri":
+                    temp.push(fri);
+                    break;
+                default:
+                    temp.push("none");
+            }
+            //Endtime
+            //starttime=data[i][12].split(" ");
+            starttime=processtime(data[i][12]);
+            temp.push(processstr(starttime[j]));
+            //des
+            des=data[i][5];
+            temp.push(des);
+            //loc
+            loc=data[i][8]+data[i][9];
+            temp.push(loc);
+            if (temp[1]!=="none") {
+                arr.push(temp); 
+            }
+        }
+    }
+}
+txtarr=$.csv.fromArrays(arr);
+txt=$.csv.toObjects(txtarr);
+//document.write(txtarr);
+
+}
+
+
+function processstr(input) {
+    var x=input.split(" ");
+    var ind,out;
+    if (x.length==2) {
+        return input;
+    } else {
+        ind=input.indexOf("a");
+        if(ind==-1) {
+            ind=input.indexOf("p");
+        }
+        out=input.substr(0, ind) + " " + input.substr(ind);
+        return out;
+
+    }
+}
+function processtime(input) {
+  var y=input.split(" ");
+  if ((y[1]=="am")||(y[1]=="pm")||(y[1]=="PM")||(y[1]=="AM")) {
+    var x=[];
+    x.push(input);
+    return x;
+  } else {
+        return y;
+  }
+
+}
+function convertArrayOfObjectsToCSV(args) {  
+        var result, ctr, keys, columnDelimiter, lineDelimiter, data;
+
+        data = args.data || null;
+        if (data == null || !data.length) {
+            return null;
+        }
+
+        columnDelimiter = args.columnDelimiter || ',';
+        lineDelimiter = args.lineDelimiter || '\n';
+
+        keys = Object.keys(data[0]);
+
+        result = '';
+        result += keys.join(columnDelimiter);
+        result += lineDelimiter;
+
+        data.forEach(function(item) {
+            ctr = 0;
+            keys.forEach(function(key) {
+                if (ctr > 0) result += columnDelimiter;
+
+                result += item[key];
+                ctr++;
+            });
+            result += lineDelimiter;
+        });
+
+        return result;
+    }
+function downloadCSV(args) {  
+        var data, filename, link;
+        var csv = convertArrayOfObjectsToCSV({
+            data: txt
+        });
+        if (csv == null) return;
+
+        filename = args.filename || 'export.csv';
+
+        if (!csv.match(/^data:text\/csv/i)) {
+            csv = 'data:text/csv;charset=UTF-8,' + csv;
+        }
+        data = encodeURI(csv);
+
+        link = document.createElement('a');
+        link.setAttribute('href', data);
+        link.setAttribute('download', filename);
+        link.click();
+    }
+function nextday(date,n) {
+    var currentDate = new Date(date.getTime() + n*24 * 60 * 60 * 1000);
+    var day = currentDate.getDate();
+    var month = currentDate.getMonth();
+    var year = currentDate.getFullYear();
+    return (month + "/" + day + "/" + year);
+}
+  </script>
+</body>
+</html>
